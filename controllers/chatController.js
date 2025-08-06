@@ -1,5 +1,5 @@
-// Importa a configuração do cliente Groq para interagir com a API
-import groq from '../config/groqConfig.js';
+// Importa a configuração do cliente IA para interagir com a API
+import openai from '../config/IAConfig.js';
 import db from '../config/database.js'; // Importa a configuração do banco de dados
 
 // Array para armazenar o contexto da conversa (mensagens anteriores)
@@ -7,7 +7,7 @@ let contexto = [];
 // Array separado para armazenar mensagens para diagnóstico
 let mensagensDiagnostico = [];
 
-// Função para configurar e enviar mensagens para a API Groq
+// Função para configurar e enviar mensagens para a API IA
 export async function configChat(message) {
     try {
         if (!message || typeof message !== 'string') {
@@ -19,8 +19,8 @@ export async function configChat(message) {
         // Adiciona também ao array de diagnóstico
         mensagensDiagnostico.push({ role: "user", content: message });
 
-        // Envia a mensagem para a API Groq com as diretrizes e contexto
-        const respostaGroq = await groq.chat.completions.create({
+        // Envia a mensagem para a API IA com as diretrizes e contexto
+        const respostaIA = await openai.chat.completions.create({
             messages: [
                 {
                     role: "system",
@@ -53,11 +53,11 @@ export async function configChat(message) {
                 },
                 ...contexto
             ],
-            model: "llama-3.3-70b-versatile", // Modelo de IA utilizado
+            model: "gpt-4o-mini", // Modelo de IA utilizado
             temperature: 0.2 // Controla a criatividade das respostas
         });
 
-        const resposta = respostaGroq.choices[0]?.message?.content?.trim();
+        const resposta = respostaIA.choices[0]?.message?.content?.trim();
 
         if (!resposta) {
             throw new Error('Não foi possível gerar uma resposta');
@@ -154,11 +154,11 @@ Diagnóstico: [máx. 50 palavras]
 Dica: [uma sugestão simples, personalizada e acolhedora]
 `;
 
-        const resultado = await groq.chat.completions.create({
+        const resultado = await openai.chat.completions.create({
             messages: [
                 { role: "user", content: prompt }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: "gpt-4o-mini",
             temperature: 0.4
         });
 
@@ -221,11 +221,11 @@ Formato da resposta:
 Dica: [texto da dica]
         `;
 
-        const respostaIA = await groq.chat.completions.create({
+        const respostaIA = await openai.chat.completions.create({
             messages: [
                 { role: "user", content: prompt }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: "gpt-4o-mini",
             temperature: 0.5
         });
 
