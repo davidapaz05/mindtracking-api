@@ -2,7 +2,7 @@ import banco from '../config/database.js';
 import { analisarTextoComAthena } from './chatController.js';
 
 // Criar uma nova entrada no diário
-export async function criarEntrada(req, res) {
+export async function mandarDiario(req, res) {
     const { texto } = req.body;
     const usuario_id = req.user.id; // Obtido do middleware de autenticação
 
@@ -52,7 +52,7 @@ export async function criarEntrada(req, res) {
     }
 }
 // Buscar todas as entradas do diário do usuário
-export async function buscarEntradas(req, res) {
+export async function buscarDiarios(req, res) {
     const usuario_id = req.user.id;
 
     try {

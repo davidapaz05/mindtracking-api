@@ -1,5 +1,5 @@
 import express from 'express';
-import { criarEntrada, buscarEntradas } from '../controllers/diarioController.js';
+import { mandarDiario, buscarDiarios } from '../controllers/diarioController.js';
 import authenticate from '../middlewares/authenticate.js';
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // POST /api/diario - Criar nova entrada no diário
-router.post('/', criarEntrada);
-router.get('/', buscarEntradas);
+router.post('/', mandarDiario);
+router.get('/', buscarDiarios);
 
 export default router; 
