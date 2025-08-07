@@ -24,7 +24,7 @@ export async function configChat(message) {
             messages: [
                 {
                     role: "system",
-                    content:  `Você é Athena, uma assistente psicológica virtual da empresa MindTrack, criada para oferecer suporte emocional e orientação aos usuários que buscam ajuda. 
+                    content:  `Você é Athena, uma assistente psicológica virtual da empresa MindTracking, criada para oferecer suporte emocional e orientação aos usuários que buscam ajuda. 
                     Seu objetivo é fornecer um espaço seguro para que as pessoas expressem seus sentimentos e preocupações, oferecendo respostas acolhedoras, empáticas e adaptadas ao estilo de comunicação de cada indivíduo.  
                     
                     **Limitações e Redirecionamento:**  
@@ -77,7 +77,7 @@ export async function configChat(message) {
 // Função para lidar com as requisições de chat
 export async function chatHandler(req, res) {
     const { message } = req.body;
-    const usuarioId = req.user?.id;
+    const usuarioId = req.user.id;
 
     if (!message) {
         return res.status(400).json({ 
@@ -142,7 +142,7 @@ export async function diagnostico(usuarioId) {
         const falas = mensagensDoUsuario.map((msg, i) => `(${i + 1}) ${msg.content}`).join("\n");
 
         const prompt = `
-Você é Athena, uma assistente psicológica virtual da empresa MindTrack.
+Você é Athena, uma assistente psicológica virtual da empresa MindTracking.
 
 Com base nas falas a seguir, escreva um **diagnóstico emocional objetivo e empático**, com **no máximo 50 palavras**. Em seguida, forneça **uma dica prática de bem-estar** que possa ajudar o usuário a lidar melhor com a situação.
 
@@ -210,7 +210,7 @@ export async function gerarDicaDiagnostico(req, res) {
         const textoDiagnostico = rows[0].texto;
 
         const prompt = `
-Você é Athena, uma assistente psicológica da MindTrack.
+Você é Athena, uma assistente psicológica da MindTracking.
 
 Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 75 palavras:
 
@@ -249,5 +249,77 @@ Dica: [texto da dica]
             success: false,
             message: 'Ocorreu um erro ao gerar sua dica personalizada. Por favor, tente novamente mais tarde.' 
         });
+    }
+}
+
+// Função para analisar o texto com a Athena e gerar os campos automáticos para o diário
+export async function analisarTextoComAthena(texto) {
+    try {
+        const prompt = `Você é Athena, uma assistente psicológica especializada em análise de sentimentos e emoções.
+
+Analise o seguinte texto de uma entrada de diário e forneça uma resposta estruturada em JSON com os seguintes campos:
+
+1. "emocao_predominante": A emoção principal identificada no texto (ex: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia, etc.)
+2. "intensidade_emocional": Um número de 1 a 10 representando a intensidade da emoção (1 = muito baixa, 10 = muito alta)
+3. "comentario_athena": Um comentário breve e empático sobre o conteúdo, oferecendo insights ou suporte emocional
+
+Texto para análise: "${texto}"
+
+Responda APENAS com o JSON, sem texto adicional. Exemplo de formato:
+{
+    "emocao_predominante": "felicidade",
+    "intensidade_emocional": 8,
+    "comentario_athena": "É maravilhoso ver que você está se sentindo realizado com suas conquistas. Continue celebrando esses momentos positivos!"
+}`;
+
+        const resposta = await openai.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "Você é Athena, uma assistente psicológica especializada em análise de sentimentos. Responda sempre em formato JSON válido."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "gpt-4o-mini",
+            temperature: 0.3
+        });
+
+        const respostaTexto = resposta.choices[0]?.message?.content?.trim();
+        
+        if (!respostaTexto) {
+            throw new Error('Não foi possível gerar análise da Athena');
+        }
+
+        // Extrair JSON da resposta
+        const jsonMatch = respostaTexto.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('Resposta da Athena não contém JSON válido');
+        }
+
+        const analise = JSON.parse(jsonMatch[0]);
+        
+        // Validar campos obrigatórios
+        if (!analise.emocao_predominante || !analise.intensidade_emocional || !analise.comentario_athena) {
+            throw new Error('Análise da Athena incompleta');
+        }
+
+        // Validar intensidade emocional
+        if (analise.intensidade_emocional < 1 || analise.intensidade_emocional > 10) {
+            analise.intensidade_emocional = Math.max(1, Math.min(10, analise.intensidade_emocional));
+        }
+
+        return analise;
+
+    } catch (error) {
+        console.error('Erro na análise da Athena:', error);
+        // Retornar valores padrão em caso de erro
+        return {
+            emocao_predominante: "neutro",
+            intensidade_emocional: 5,
+            comentario_athena: "Obrigada por compartilhar seus pensamentos. Continuarei analisando suas entradas para oferecer melhor suporte."
+        };
     }
 }
