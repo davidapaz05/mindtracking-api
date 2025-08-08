@@ -1,4 +1,4 @@
-MINDTRACK/
+MINDTRACKING/
 │── config/
 │   ├── .env
 │   ├── database.js

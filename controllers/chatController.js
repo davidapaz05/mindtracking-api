@@ -142,17 +142,17 @@ export async function diagnostico(usuarioId) {
         const falas = mensagensDoUsuario.map((msg, i) => `(${i + 1}) ${msg.content}`).join("\n");
 
         const prompt = `
-Você é Athena, uma assistente psicológica virtual da empresa MindTracking.
+                        Você é Athena, uma assistente psicológica virtual da empresa MindTracking.
 
-Com base nas falas a seguir, escreva um **diagnóstico emocional objetivo e empático**, com **no máximo 50 palavras**. Em seguida, forneça **uma dica prática de bem-estar** que possa ajudar o usuário a lidar melhor com a situação.
+                        Com base nas falas a seguir, escreva um **diagnóstico emocional objetivo e empático**, com **no máximo 50 palavras**. Em seguida, forneça **uma dica prática de bem-estar** que possa ajudar o usuário a lidar melhor com a situação.
 
-Falas do usuário:
-${falas}
+                        Falas do usuário:
+                        ${falas}
 
-Formato da resposta:
-Diagnóstico: [máx. 50 palavras]  
-Dica: [uma sugestão simples, personalizada e acolhedora]
-`;
+                        Formato da resposta:
+                        Diagnóstico: [máx. 50 palavras]  
+                        Dica: [uma sugestão simples, personalizada e acolhedora]
+                        `;
 
         const resultado = await openai.chat.completions.create({
             messages: [
@@ -210,16 +210,16 @@ export async function gerarDicaDiagnostico(req, res) {
         const textoDiagnostico = rows[0].texto;
 
         const prompt = `
-Você é Athena, uma assistente psicológica da MindTracking.
+                        Você é Athena, uma assistente psicológica da MindTracking.
 
-Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 75 palavras:
+                        Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 75 palavras.
 
-Diagnóstico:
-${textoDiagnostico}
+                        Diagnóstico:
+                        ${textoDiagnostico}
 
-Formato da resposta:
-Dica: [texto da dica]
-        `;
+                        Formato da resposta:
+                        Dica: [texto da dica]
+                        `;
 
         const respostaIA = await openai.chat.completions.create({
             messages: [
@@ -255,22 +255,30 @@ Dica: [texto da dica]
 // Função para analisar o texto com a Athena e gerar os campos automáticos para o diário
 export async function analisarTextoComAthena(texto) {
     try {
+        // Validar se o texto não está vazio
+        if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
+            throw new Error('Texto não pode estar vazio');
+        }
         const prompt = `Você é Athena, uma assistente psicológica especializada em análise de sentimentos e emoções.
 
-Analise o seguinte texto de uma entrada de diário e forneça uma resposta estruturada em JSON com os seguintes campos:
+                        Analise o seguinte texto de uma entrada de diário e forneça uma resposta estruturada em JSON com os seguintes campos:
 
-1. "emocao_predominante": A emoção principal identificada no texto (ex: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia, etc.)
-2. "intensidade_emocional": Um número de 1 a 10 representando a intensidade da emoção (1 = muito baixa, 10 = muito alta)
-3. "comentario_athena": Um comentário breve e empático sobre o conteúdo, oferecendo insights ou suporte emocional
+                        1. "emocao_predominante": A emoção principal identificada no texto (ex: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia, etc.)
+                        2. "intensidade_emocional": a intensidade da emoção (deve ser exatamente: "baixa", "moderada" ou "alta")
+                        3. "comentario_athena": Um comentário breve e empático que SEMPRE deve conter pelo menos uma das seguintes opções:
+                           - Uma palavra de acolhimento (ex: "Entendo", "Compreendo", "Estou aqui para você")
+                           - Uma palavra de aprovação (ex: "Parabéns", "Excelente", "Muito bem")
+                           - Uma palavra de incentivo (ex: "Continue assim", "Você consegue", "Mantenha-se forte")
+                           - Uma dica prática para melhorar (ex: "Tente respirar fundo", "Considere fazer uma caminhada", "Que tal escrever mais sobre isso?")
 
-Texto para análise: "${texto}"
+                        Texto para análise: "${texto}"
 
-Responda APENAS com o JSON, sem texto adicional. Exemplo de formato:
-{
-    "emocao_predominante": "felicidade",
-    "intensidade_emocional": 8,
-    "comentario_athena": "É maravilhoso ver que você está se sentindo realizado com suas conquistas. Continue celebrando esses momentos positivos!"
-}`;
+                        Responda APENAS com o JSON, sem texto adicional. Exemplo de formato:
+                        {
+                            "emocao_predominante": "felicidade",
+                            "intensidade_emocional": "alta",
+                            "comentario_athena": "Parabéns! É maravilhoso ver que você está se sentindo realizado. Continue celebrando esses momentos positivos e compartilhe sua alegria com quem você ama."
+                        }`;
 
         const resposta = await openai.chat.completions.create({
             messages: [
@@ -306,9 +314,10 @@ Responda APENAS com o JSON, sem texto adicional. Exemplo de formato:
             throw new Error('Análise da Athena incompleta');
         }
 
-        // Validar intensidade emocional
-        if (analise.intensidade_emocional < 1 || analise.intensidade_emocional > 10) {
-            analise.intensidade_emocional = Math.max(1, Math.min(10, analise.intensidade_emocional));
+        // Validar intensidade emocional (deve ser texto: baixa, moderada ou alta)
+        const intensidadesValidas = ['baixa', 'moderada', 'alta'];
+        if (!intensidadesValidas.includes(analise.intensidade_emocional.toLowerCase())) {
+            analise.intensidade_emocional = 'moderada'; // valor padrão
         }
 
         return analise;
@@ -318,8 +327,8 @@ Responda APENAS com o JSON, sem texto adicional. Exemplo de formato:
         // Retornar valores padrão em caso de erro
         return {
             emocao_predominante: "neutro",
-            intensidade_emocional: 5,
-            comentario_athena: "Obrigada por compartilhar seus pensamentos. Continuarei analisando suas entradas para oferecer melhor suporte."
+            intensidade_emocional: "moderada",
+            comentario_athena: "Entendo que você está compartilhando seus pensamentos. Obrigada por confiar em mim. Continuarei analisando suas entradas para oferecer melhor suporte e dicas personalizadas."
         };
     }
 }

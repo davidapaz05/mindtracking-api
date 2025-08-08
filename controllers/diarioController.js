@@ -3,23 +3,30 @@ import { analisarTextoComAthena } from './chatController.js';
 
 // Criar uma nova entrada no diário
 export async function mandarDiario(req, res) {
-    const { texto } = req.body;
+    const { texto, titulo } = req.body;
     const usuario_id = req.user.id; // Obtido do middleware de autenticação
 
-    if (!texto) {
+    if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
         return res.status(400).json({
             success: false,
-            message: 'O campo texto é obrigatório'
+            message: 'O campo texto é obrigatório e não pode estar vazio'
+        });
+    }
+
+    if (!titulo || typeof titulo !== 'string' || titulo.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'O campo título é obrigatório e não pode estar vazio'
         });
     }
 
     try {
         // Criar a entrada com campos vazios
         const novaEntrada = await banco.query(
-            `INSERT INTO diario (usuario_id, texto, emocao_predominante, intensidade_emocional, comentario_athena) 
-             VALUES ($1, $2, $3, $4, $5) 
-             RETURNING id, usuario_id, data_hora, texto, emocao_predominante, intensidade_emocional, comentario_athena`,
-            [usuario_id, texto, null, null, null]
+            `INSERT INTO diario (usuario_id, titulo, texto, emocao_predominante, intensidade_emocional, comentario_athena) 
+             VALUES ($1, $2, $3, $4, $5, $6) 
+             RETURNING id, usuario_id, data_hora, titulo, texto, emocao_predominante, intensidade_emocional, comentario_athena`,
+            [usuario_id, titulo, texto, null, null, null]
         );
 
         // Analisar o texto com a Athena e aguardar a conclusão
@@ -30,7 +37,7 @@ export async function mandarDiario(req, res) {
             `UPDATE diario 
              SET emocao_predominante = $1, intensidade_emocional = $2, comentario_athena = $3
              WHERE id = $4
-             RETURNING id, usuario_id, data_hora, texto, emocao_predominante, intensidade_emocional, comentario_athena`,
+             RETURNING id, usuario_id, data_hora, titulo, texto, emocao_predominante, intensidade_emocional, comentario_athena`,
             [analise.emocao_predominante, analise.intensidade_emocional, analise.comentario_athena, novaEntrada.rows[0].id]
         );
 
@@ -58,7 +65,7 @@ export async function buscarDiarios(req, res) {
     try {
         // Buscar todas as entradas
         const entradas = await banco.query(
-            `SELECT data_hora, texto, emocao_predominante, intensidade_emocional, comentario_athena
+            `SELECT data_hora, titulo, texto, emocao_predominante, intensidade_emocional, comentario_athena
              FROM diario 
              WHERE usuario_id = $1 
              ORDER BY data_hora DESC`,
