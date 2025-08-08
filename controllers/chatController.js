@@ -265,11 +265,7 @@ export async function analisarTextoComAthena(texto) {
 
                         1. "emocao_predominante": A emoção principal identificada no texto (ex: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia, etc.)
                         2. "intensidade_emocional": a intensidade da emoção (deve ser exatamente: "baixa", "moderada" ou "alta")
-                        3. "comentario_athena": Um comentário breve e empático que SEMPRE deve conter pelo menos uma das seguintes opções:
-                           - Uma palavra de acolhimento (ex: "Entendo", "Compreendo", "Estou aqui para você")
-                           - Uma palavra de aprovação (ex: "Parabéns", "Excelente", "Muito bem")
-                           - Uma palavra de incentivo (ex: "Continue assim", "Você consegue", "Mantenha-se forte")
-                           - Uma dica prática para melhorar (ex: "Tente respirar fundo", "Considere fazer uma caminhada", "Que tal escrever mais sobre isso?")
+                        3. "comentario_athena": Um comentário breve e empático sobre o conteúdo, oferecendo insights ou suporte emocional
 
                         Texto para análise: "${texto}"
 
@@ -277,7 +273,7 @@ export async function analisarTextoComAthena(texto) {
                         {
                             "emocao_predominante": "felicidade",
                             "intensidade_emocional": "alta",
-                            "comentario_athena": "Parabéns! É maravilhoso ver que você está se sentindo realizado. Continue celebrando esses momentos positivos e compartilhe sua alegria com quem você ama."
+                            "comentario_athena": "É maravilhoso ver que você está se sentindo realizado com suas conquistas. Continue celebrando esses momentos positivos!"
                         }`;
 
         const resposta = await openai.chat.completions.create({
@@ -328,7 +324,7 @@ export async function analisarTextoComAthena(texto) {
         return {
             emocao_predominante: "neutro",
             intensidade_emocional: "moderada",
-            comentario_athena: "Entendo que você está compartilhando seus pensamentos. Obrigada por confiar em mim. Continuarei analisando suas entradas para oferecer melhor suporte e dicas personalizadas."
+            comentario_athena: "Obrigada por compartilhar seus pensamentos. Continuarei analisando suas entradas para oferecer melhor suporte."
         };
     }
 }

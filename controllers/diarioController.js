@@ -4,7 +4,7 @@ import { analisarTextoComAthena } from './chatController.js';
 // Criar uma nova entrada no diário
 export async function mandarDiario(req, res) {
     const { texto, titulo } = req.body;
-    const usuario_id = req.user.id; // Obtido do middleware de autenticação
+    const usuario_id = req.user.id;
 
     if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
         return res.status(400).json({
@@ -21,7 +21,23 @@ export async function mandarDiario(req, res) {
     }
 
     try {
-        // Criar a entrada com campos vazios
+        // 1️⃣ Verificar se já existe diário na data atual para este usuário
+        const diarioExistente = await banco.query(
+            `SELECT id 
+             FROM diario 
+             WHERE usuario_id = $1
+             AND DATE(data_hora) = CURRENT_DATE`,
+            [usuario_id]
+        );
+
+        if (diarioExistente.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Já existe um diário registrado para a data de hoje.'
+            });
+        }
+
+        // 2️⃣ Criar entrada
         const novaEntrada = await banco.query(
             `INSERT INTO diario (usuario_id, titulo, texto, emocao_predominante, intensidade_emocional, comentario_athena) 
              VALUES ($1, $2, $3, $4, $5, $6) 
@@ -29,10 +45,10 @@ export async function mandarDiario(req, res) {
             [usuario_id, titulo, texto, null, null, null]
         );
 
-        // Analisar o texto com a Athena e aguardar a conclusão
+        // 3️⃣ Analisar o texto
         const analise = await analisarTextoComAthena(texto);
-        
-        // Atualizar a entrada com a análise da Athena
+
+        // 4️⃣ Atualizar com análise
         const entradaAtualizada = await banco.query(
             `UPDATE diario 
              SET emocao_predominante = $1, intensidade_emocional = $2, comentario_athena = $3

@@ -40,7 +40,7 @@ MindTracking é uma API robusta para suporte emocional e orientação psicológi
 - Entradas de diário com análise automática da Athena
 - Identificação de emoções predominantes
 - Avaliação da intensidade emocional (baixa, moderada, alta)
-- Comentários personalizados da IA com acolhimento, aprovação, incentivo ou dicas práticas
+- Comentários personalizados da IA para cada entrada
 - Histórico completo de reflexões e sentimentos
 
 ## 🛠️ Tecnologias Utilizadas
@@ -233,7 +233,7 @@ curl -X GET http://localhost:3000/api/diario \
     "texto": "Hoje foi um dia difícil no trabalho...",
     "emocao_predominante": "ansiedade",
     "intensidade_emocional": "moderada",
-    "comentario_athena": "Entendo que você está enfrentando desafios no trabalho. Mantenha-se forte e lembre-se de respirar fundo quando se sentir sobrecarregado."
+    "comentario_athena": "Percebo que você está enfrentando desafios..."
   }
 }
 ```
@@ -266,7 +266,7 @@ curl -X GET http://localhost:3000/api/diario \
       "texto": "Estou muito feliz com minhas conquistas!",
       "emocao_predominante": "felicidade",
       "intensidade_emocional": "alta",
-      "comentario_athena": "Parabéns! É maravilhoso ver sua alegria! Continue celebrando suas conquistas e compartilhe sua felicidade com quem você ama."
+      "comentario_athena": "É maravilhoso ver sua alegria! Continue celebrando suas conquistas."
     },
     {
       "data_hora": "2024-01-14T15:20:00Z",
@@ -274,7 +274,7 @@ curl -X GET http://localhost:3000/api/diario \
       "texto": "Hoje foi um dia difícil no trabalho...",
       "emocao_predominante": "ansiedade",
       "intensidade_emocional": "moderada",
-      "comentario_athena": "Entendo que você está enfrentando desafios. Mantenha-se forte e considere fazer uma caminhada para aliviar a tensão."
+      "comentario_athena": "Percebo que você está enfrentando desafios..."
     },
     {
       "data_hora": "2024-01-13T09:45:00Z",
@@ -282,7 +282,7 @@ curl -X GET http://localhost:3000/api/diario \
       "texto": "Estou um pouco cansado, mas tranquilo.",
       "emocao_predominante": "calma",
       "intensidade_emocional": "baixa",
-      "comentario_athena": "Excelente! É importante respeitar seus limites e descansar quando necessário. Continue cuidando de si mesmo."
+      "comentario_athena": "É importante respeitar seus limites e descansar quando necessário."
     }
   ]
 }
@@ -297,13 +297,6 @@ A intensidade emocional é sempre retornada como texto com um dos seguintes valo
 - **"baixa"**: Emoções suaves ou sutis
 - **"moderada"**: Emoções de intensidade média
 - **"alta"**: Emoções intensas ou fortes
-
-### **Comentários da Athena**
-Os comentários da Athena sempre incluem pelo menos uma das seguintes abordagens:
-- **Acolhimento**: "Entendo", "Compreendo", "Estou aqui para você"
-- **Aprovação**: "Parabéns", "Excelente", "Muito bem"
-- **Incentivo**: "Continue assim", "Você consegue", "Mantenha-se forte"
-- **Dicas práticas**: Sugestões específicas para melhorar o bem-estar
 
 ## 🏗️ Estrutura do Projeto
 
