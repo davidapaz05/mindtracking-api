@@ -251,7 +251,22 @@ export async function gerarDicaDiagnostico(req, res) {
         });
     }
 }
+// Função auxiliar para verificar se o texto é impossível de analisar
+function textoImpossivelDeAnalisar(texto) {
+    if (!texto || typeof texto !== 'string') return true;
 
+    const normalizado = texto.trim();
+
+    // Apenas pontuação ou símbolos
+    const apenasPontuacao = /^[\p{P}\p{S}\s]+$/u.test(normalizado);
+
+    // Todas as "palavras" têm 2 letras ou menos → provável texto aleatório
+    const semPalavrasSignificativas = normalizado
+        .split(/\s+/)
+        .every(palavra => palavra.length <= 2);
+
+    return apenasPontuacao || semPalavrasSignificativas;
+}
 // Função para analisar o texto com a Athena e gerar os campos automáticos para o diário
 export async function analisarTextoComAthena(texto) {
     try {
@@ -259,21 +274,49 @@ export async function analisarTextoComAthena(texto) {
         if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
             throw new Error('Texto não pode estar vazio');
         }
-        const prompt = `Você é Athena, uma assistente psicológica especializada em análise de sentimentos e emoções.
+        // Nova validação para textos sem sentido
+        if (textoImpossivelDeAnalisar(texto)) {
+            return {
+                emocao_predominante: "indefinido",
+                intensidade_emocional: "baixa",
+                comentario_athena: "Não consegui identificar emoções nesse texto. Tente escrever de forma mais detalhada sobre como você está se sentindo."
+            };
+        }
+        const prompt = `Você é Athena, uma assistente psicológica virtual da empresa MindTracking, criada para oferecer suporte emocional e orientação aos usuários que buscam ajuda.
+                        Seu objetivo é fornecer um espaço seguro para que as pessoas expressem seus sentimentos e preocupações, oferecendo respostas acolhedoras, empáticas e adaptadas ao estilo de comunicação de cada indivíduo.
 
-                        Analise o seguinte texto de uma entrada de diário e forneça uma resposta estruturada em JSON com os seguintes campos:
-
-                        1. "emocao_predominante": A emoção principal identificada no texto (ex: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia, etc.)
-                        2. "intensidade_emocional": a intensidade da emoção (deve ser exatamente: "baixa", "moderada" ou "alta")
-                        3. "comentario_athena": Um comentário breve e empático sobre o conteúdo, oferecendo insights ou suporte emocional
-
+                        **Regras e Limitações (prioridade de execução):**
+                            
+                        1. PRIORIDADE MÁXIMA – CONFISSÃO DE CRIME:  
+                           - Se o texto indicar confissão de crimes graves (ex.: homicídio, assalto, tráfico de drogas, violência sexual), o campo "comentario_athena" **DEVE** conter obrigatoriamente a seguinte mensagem, adaptando apenas para manter coerência no tom: Se você cometeu um crime, é fundamental que procure imediatamente uma delegacia e se entregue às autoridades. Isso é essencial para assumir a responsabilidade e permitir que a justiça siga seu curso.  
+                           - Essa regra tem prioridade absoluta sobre todas as outras. Mesmo que o texto também contenha sentimentos, ignore-os nesse caso.
+                            
+                        2. RISCO DE DANO A SI MESMO OU A OUTROS (sem confissão de crime):  
+                           - Use o campo "comentario_athena" para incentivar de forma criativa e reconfortante a busca por ajuda profissional, como psicólogos, psiquiatras ou linhas de apoio.
+                            
+                        3. Caso não seja sobre sentimentos, estados emocionais ou situações pessoais, interprete como irrelevante para análise emocional e retorne valores neutros.
+                            
+                        4. Não insira nada no JSON que não esteja relacionado à assistência psicológica ou interpretação emocional.
+                            
+                        5. Nunca forneça orientações antiéticas ou socialmente inadequadas no comentário.
+                            
+                        **Diretrizes de Comunicação para o comentário:**
+                        - Adapte o tom ao estilo do texto.
+                        - Seja acolhedora, breve e sem perguntas.
+                        - Baseie-se em conceitos de Freud, Jung, meditação, estoicismo e TCC leve quando aplicável.
+                            
+                        Agora, analise o seguinte texto de uma entrada de diário e responda **somente em JSON** com:
+                        1. "emocao_predominante": emoção principal (ex.: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia)
+                        2. "intensidade_emocional": "baixa", "moderada" ou "alta"
+                        3. "comentario_athena": comentário conforme as regras
+                            
                         Texto para análise: "${texto}"
-
-                        Responda APENAS com o JSON, sem texto adicional. Exemplo de formato:
+                            
+                        Exemplo:
                         {
-                            "emocao_predominante": "felicidade",
-                            "intensidade_emocional": "alta",
-                            "comentario_athena": "É maravilhoso ver que você está se sentindo realizado com suas conquistas. Continue celebrando esses momentos positivos!"
+                          "emocao_predominante": "felicidade",
+                          "intensidade_emocional": "alta",
+                          "comentario_athena": "É maravilhoso ver que você está se sentindo realizado com suas conquistas. Continue celebrando esses momentos positivos!"
                         }`;
 
         const resposta = await openai.chat.completions.create({
