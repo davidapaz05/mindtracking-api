@@ -51,7 +51,7 @@ export const emailTemplates = {
                 <div class="code">${codigo}</div>
                 <p>Se você não solicitou este código, por favor, ignore este e-mail.</p>
                 <div class="footer">
-                    <p>Atenciosamente,<br>Equipe MindTrack</p>
+                    <p>Atenciosamente,<br>Equipe MindTracking</p>
                 </div>
             </div>
         </body>

@@ -6,7 +6,8 @@ import { fileURLToPath } from 'url';
 
 import chatRoutes from './routes/chatRoutes.js';
 import authRoutes from './routes/authRoutes.js';
-import questionarioRoutes from './routes/questionarioRoutes.js'; 
+import questionarioRoutes from './routes/questionarioRoutes.js';
+import diarioRoutes from './routes/diarioRoutes.js'; 
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(express.static("public"));
 app.use('/api', chatRoutes);
 app.use('/auth', authRoutes);
 app.use('/questionario', questionarioRoutes);
+app.use('/api/diario', diarioRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

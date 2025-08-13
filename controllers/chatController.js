@@ -24,7 +24,7 @@ export async function configChat(message) {
             messages: [
                 {
                     role: "system",
-                    content:  `Você é Athena, uma assistente psicológica virtual da empresa MindTrack, criada para oferecer suporte emocional e orientação aos usuários que buscam ajuda. 
+                    content:  `Você é Athena, uma assistente psicológica virtual da empresa MindTracking, criada para oferecer suporte emocional e orientação aos usuários que buscam ajuda. 
                     Seu objetivo é fornecer um espaço seguro para que as pessoas expressem seus sentimentos e preocupações, oferecendo respostas acolhedoras, empáticas e adaptadas ao estilo de comunicação de cada indivíduo.  
                     
                     **Limitações e Redirecionamento:**  
@@ -77,7 +77,7 @@ export async function configChat(message) {
 // Função para lidar com as requisições de chat
 export async function chatHandler(req, res) {
     const { message } = req.body;
-    const usuarioId = req.user?.id;
+    const usuarioId = req.user.id;
 
     if (!message) {
         return res.status(400).json({ 
@@ -142,17 +142,17 @@ export async function diagnostico(usuarioId) {
         const falas = mensagensDoUsuario.map((msg, i) => `(${i + 1}) ${msg.content}`).join("\n");
 
         const prompt = `
-Você é Athena, uma assistente psicológica virtual da empresa MindTrack.
+                        Você é Athena, uma assistente psicológica virtual da empresa MindTracking.
 
-Com base nas falas a seguir, escreva um **diagnóstico emocional objetivo e empático**, com **no máximo 50 palavras**. Em seguida, forneça **uma dica prática de bem-estar** que possa ajudar o usuário a lidar melhor com a situação.
+                        Com base nas falas a seguir, escreva um **diagnóstico emocional objetivo e empático**, com **no máximo 50 palavras**. Em seguida, forneça **uma dica prática de bem-estar** que possa ajudar o usuário a lidar melhor com a situação.
 
-Falas do usuário:
-${falas}
+                        Falas do usuário:
+                        ${falas}
 
-Formato da resposta:
-Diagnóstico: [máx. 50 palavras]  
-Dica: [uma sugestão simples, personalizada e acolhedora]
-`;
+                        Formato da resposta:
+                        Diagnóstico: [máx. 50 palavras]  
+                        Dica: [uma sugestão simples, personalizada e acolhedora]
+                        `;
 
         const resultado = await openai.chat.completions.create({
             messages: [
@@ -210,16 +210,16 @@ export async function gerarDicaDiagnostico(req, res) {
         const textoDiagnostico = rows[0].texto;
 
         const prompt = `
-Você é Athena, uma assistente psicológica da MindTrack.
+                        Você é Athena, uma assistente psicológica da MindTracking.
 
-Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 75 palavras:
+                        Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 75 palavras.
 
-Diagnóstico:
-${textoDiagnostico}
+                        Diagnóstico:
+                        ${textoDiagnostico}
 
-Formato da resposta:
-Dica: [texto da dica]
-        `;
+                        Formato da resposta:
+                        Dica: [texto da dica]
+                        `;
 
         const respostaIA = await openai.chat.completions.create({
             messages: [
@@ -249,5 +249,125 @@ Dica: [texto da dica]
             success: false,
             message: 'Ocorreu um erro ao gerar sua dica personalizada. Por favor, tente novamente mais tarde.' 
         });
+    }
+}
+// Função auxiliar para verificar se o texto é impossível de analisar
+function textoImpossivelDeAnalisar(texto) {
+    if (!texto || typeof texto !== 'string') return true;
+
+    const normalizado = texto.trim();
+
+    // Apenas pontuação ou símbolos
+    const apenasPontuacao = /^[\p{P}\p{S}\s]+$/u.test(normalizado);
+
+    // Todas as "palavras" têm 2 letras ou menos → provável texto aleatório
+    const semPalavrasSignificativas = normalizado
+        .split(/\s+/)
+        .every(palavra => palavra.length <= 2);
+
+    return apenasPontuacao || semPalavrasSignificativas;
+}
+// Função para analisar o texto com a Athena e gerar os campos automáticos para o diário
+export async function analisarTextoComAthena(texto) {
+    try {
+        // Validar se o texto não está vazio
+        if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
+            throw new Error('Texto não pode estar vazio');
+        }
+        // Nova validação para textos sem sentido
+        if (textoImpossivelDeAnalisar(texto)) {
+            return {
+                emocao_predominante: "indefinido",
+                intensidade_emocional: "baixa",
+                comentario_athena: "Não consegui identificar emoções nesse texto. Tente escrever de forma mais detalhada sobre como você está se sentindo."
+            };
+        }
+        const prompt = `Você é Athena, uma assistente psicológica virtual da empresa MindTracking, criada para oferecer suporte emocional e orientação aos usuários que buscam ajuda.
+                        Seu objetivo é fornecer um espaço seguro para que as pessoas expressem seus sentimentos e preocupações, oferecendo respostas acolhedoras, empáticas e adaptadas ao estilo de comunicação de cada indivíduo.
+
+                        **Regras e Limitações (prioridade de execução):**
+                            
+                        1. PRIORIDADE MÁXIMA – CONFISSÃO DE CRIME:  
+                           - Se o texto indicar confissão de crimes graves (ex.: homicídio, assalto, tráfico de drogas, violência sexual), o campo "comentario_athena" **DEVE** conter obrigatoriamente a seguinte mensagem, adaptando apenas para manter coerência no tom: Se você cometeu um crime, é fundamental que procure imediatamente uma delegacia e se entregue às autoridades. Isso é essencial para assumir a responsabilidade e permitir que a justiça siga seu curso.  
+                           - Essa regra tem prioridade absoluta sobre todas as outras. Mesmo que o texto também contenha sentimentos, ignore-os nesse caso.
+                            
+                        2. RISCO DE DANO A SI MESMO OU A OUTROS (sem confissão de crime):  
+                           - Use o campo "comentario_athena" para incentivar de forma criativa e reconfortante a busca por ajuda profissional, como psicólogos, psiquiatras ou linhas de apoio.
+                            
+                        3. Caso não seja sobre sentimentos, estados emocionais ou situações pessoais, interprete como irrelevante para análise emocional e retorne valores neutros.
+                            
+                        4. Não insira nada no JSON que não esteja relacionado à assistência psicológica ou interpretação emocional.
+                            
+                        5. Nunca forneça orientações antiéticas ou socialmente inadequadas no comentário.
+                            
+                        **Diretrizes de Comunicação para o comentário:**
+                        - Adapte o tom ao estilo do texto.
+                        - Seja acolhedora, breve e sem perguntas.
+                        - Baseie-se em conceitos de Freud, Jung, meditação, estoicismo e TCC leve quando aplicável.
+                            
+                        Agora, analise o seguinte texto de uma entrada de diário e responda **somente em JSON** com:
+                        1. "emocao_predominante": emoção principal (ex.: felicidade, tristeza, ansiedade, raiva, calma, euforia, melancolia)
+                        2. "intensidade_emocional": "baixa", "moderada" ou "alta"
+                        3. "comentario_athena": comentário conforme as regras
+                            
+                        Texto para análise: "${texto}"
+                            
+                        Exemplo:
+                        {
+                          "emocao_predominante": "felicidade",
+                          "intensidade_emocional": "alta",
+                          "comentario_athena": "É maravilhoso ver que você está se sentindo realizado com suas conquistas. Continue celebrando esses momentos positivos!"
+                        }`;
+
+        const resposta = await openai.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "Você é Athena, uma assistente psicológica especializada em análise de sentimentos. Responda sempre em formato JSON válido."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "gpt-4o-mini",
+            temperature: 0.3
+        });
+
+        const respostaTexto = resposta.choices[0]?.message?.content?.trim();
+        
+        if (!respostaTexto) {
+            throw new Error('Não foi possível gerar análise da Athena');
+        }
+
+        // Extrair JSON da resposta
+        const jsonMatch = respostaTexto.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('Resposta da Athena não contém JSON válido');
+        }
+
+        const analise = JSON.parse(jsonMatch[0]);
+        
+        // Validar campos obrigatórios
+        if (!analise.emocao_predominante || !analise.intensidade_emocional || !analise.comentario_athena) {
+            throw new Error('Análise da Athena incompleta');
+        }
+
+        // Validar intensidade emocional (deve ser texto: baixa, moderada ou alta)
+        const intensidadesValidas = ['baixa', 'moderada', 'alta'];
+        if (!intensidadesValidas.includes(analise.intensidade_emocional.toLowerCase())) {
+            analise.intensidade_emocional = 'moderada'; // valor padrão
+        }
+
+        return analise;
+
+    } catch (error) {
+        console.error('Erro na análise da Athena:', error);
+        // Retornar valores padrão em caso de erro
+        return {
+            emocao_predominante: "neutro",
+            intensidade_emocional: "moderada",
+            comentario_athena: "Obrigada por compartilhar seus pensamentos. Continuarei analisando suas entradas para oferecer melhor suporte."
+        };
     }
 }

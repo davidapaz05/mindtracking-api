@@ -18,7 +18,6 @@ const banco = new Pool({
     port: process.env.PORTA // Porta do banco de dados (definido no .env)
 });
 
-// Tenta conectar ao banco de dados
 banco.connect()
     .then(() => console.log("Banco de dados conectado!")) // Mensagem de sucesso ao conectar
     .catch(err => console.error("Erro ao conectar ao banco:", err)); // Mensagem de erro caso a conexão falhe

@@ -1,6 +1,6 @@
-# MindTrack API
+# MindTracking API
 
-MindTrack é uma API robusta para suporte emocional e orientação psicológica. O sistema oferece questionários diários para acompanhamento emocional, gera diagnósticos personalizados e conta com a **Athena**, uma inteligência artificial especializada em atendimento psicológico que interage via chat para oferecer acolhimento, dicas e reflexões personalizadas.
+MindTracking é uma API robusta para suporte emocional e orientação psicológica. O sistema oferece questionários diários para acompanhamento emocional, gera diagnósticos personalizados e conta com a **Athena**, uma inteligência artificial especializada em atendimento psicológico que interage via chat para oferecer acolhimento, dicas e reflexões personalizadas.
 
 ## ✨ Visão Geral
 
@@ -36,6 +36,13 @@ MindTrack é uma API robusta para suporte emocional e orientação psicológica.
 - Evolução do bem-estar ao longo do tempo
 - Dicas personalizadas baseadas no progresso
 
+### 📝 **Sistema de Diário**
+- Entradas de diário com análise automática da Athena
+- Identificação de emoções predominantes
+- Avaliação da intensidade emocional (baixa, moderada, alta)
+- Comentários personalizados da IA para cada entrada
+- Histórico completo de reflexões e sentimentos
+
 ## 🛠️ Tecnologias Utilizadas
 
 ### **Backend**
@@ -70,7 +77,7 @@ MindTrack é uma API robusta para suporte emocional e orientação psicológica.
 ### **1. Clone o Repositório**
 ```bash
 git clone <URL_DO_REPOSITORIO>
-cd MindTrack-API
+cd MindTracking-API
 ```
 
 ### **2. Instale as Dependências**
@@ -90,7 +97,7 @@ NODE_ENV=development
 DB_USER=seu_usuario_postgres
 DB_PASSWORD=sua_senha_postgres
 DB_HOST=localhost
-DB_NAME=mindtrack_db
+DB_NAME=mindtracking_db
 PORTA=5432
 
 # Configurações de Segurança
@@ -107,7 +114,7 @@ EMAIL_PASS=sua_senha_de_app_gmail
 ### **4. Configure o Banco de Dados**
 ```sql
 -- Crie o banco de dados
-CREATE DATABASE mindtrack_db;
+CREATE DATABASE mindtracking_db;
 
 -- Execute os scripts de criação das tabelas
 -- (consulte a documentação do banco para os scripts completos)
@@ -128,12 +135,12 @@ A API estará disponível em `http://localhost:3000`
 
 ### **Build da Imagem**
 ```bash
-docker build -t mindtrack-api .
+docker build -t mindtracking-api .
 ```
 
 ### **Executar Container**
 ```bash
-docker run -p 3000:3000 --env-file ./config/.env mindtrack-api
+docker run -p 3000:3000 --env-file ./config/.env mindtracking-api
 ```
 
 ## 📚 Documentação da API
@@ -164,6 +171,13 @@ http://localhost:3000
 - `POST /questionario/diario` - Enviar resposta do questionário diário (autenticado)
 - `GET /questionario/historico` - Obter histórico de questionários (autenticado)
 
+#### **📝 Diário**
+- `POST /api/diario` - Criar nova entrada no diário (autenticado)
+  - **Body**: `{ "texto": "string", "titulo": "string" }` (texto e título obrigatórios e não podem estar vazios)
+  - **Retorna**: Entrada criada com análise da Athena (emoção predominante, intensidade emocional: "baixa", "moderada" ou "alta", comentário)
+- `GET /api/diario` - Obter todas as entradas do diário (autenticado)
+  - **Retorna**: Lista de todas as entradas ordenadas por data (mais recente primeiro)
+
 ### **Exemplo de Uso**
 
 #### **Registro de Usuário**
@@ -189,10 +203,105 @@ curl -X POST http://localhost:3000/api/chat \
   }'
 ```
 
+#### **Criar Entrada no Diário**
+```bash
+curl -X POST http://localhost:3000/api/diario \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer SEU_TOKEN_JWT" \
+  -d '{
+    "titulo": "Dia de desafios no trabalho",
+    "texto": "Hoje foi um dia difícil no trabalho, mas consegui resolver alguns problemas importantes."
+  }'
+```
+
+#### **Obter Entradas do Diário**
+```bash
+curl -X GET http://localhost:3000/api/diario \
+  -H "Authorization: Bearer SEU_TOKEN_JWT"
+```
+
+**Resposta do POST /api/diario:**
+```json
+{
+  "success": true,
+  "message": "Entrada do diário criada com sucesso e análise da Athena concluída.",
+  "entrada": {
+    "id": 1,
+    "usuario_id": 123,
+    "data_hora": "2024-01-15T10:30:00Z",
+    "titulo": "Dia de desafios no trabalho",
+    "texto": "Hoje foi um dia difícil no trabalho...",
+    "emocao_predominante": "ansiedade",
+    "intensidade_emocional": "moderada",
+    "comentario_athena": "Percebo que você está enfrentando desafios..."
+  }
+}
+```
+
+**Erro quando texto está vazio:**
+```json
+{
+  "success": false,
+  "message": "O campo texto é obrigatório e não pode estar vazio"
+}
+```
+
+**Erro quando título está vazio:**
+```json
+{
+  "success": false,
+  "message": "O campo título é obrigatório e não pode estar vazio"
+}
+```
+
+**Resposta do GET /api/diario:**
+```json
+{
+  "success": true,
+  "message": "Entradas do diário recuperadas com sucesso",
+  "entradas": [
+    {
+      "data_hora": "2024-01-15T10:30:00Z",
+      "titulo": "Dia de grandes conquistas",
+      "texto": "Estou muito feliz com minhas conquistas!",
+      "emocao_predominante": "felicidade",
+      "intensidade_emocional": "alta",
+      "comentario_athena": "É maravilhoso ver sua alegria! Continue celebrando suas conquistas."
+    },
+    {
+      "data_hora": "2024-01-14T15:20:00Z",
+      "titulo": "Dia de desafios no trabalho",
+      "texto": "Hoje foi um dia difícil no trabalho...",
+      "emocao_predominante": "ansiedade",
+      "intensidade_emocional": "moderada",
+      "comentario_athena": "Percebo que você está enfrentando desafios..."
+    },
+    {
+      "data_hora": "2024-01-13T09:45:00Z",
+      "titulo": "Momento de tranquilidade",
+      "texto": "Estou um pouco cansado, mas tranquilo.",
+      "emocao_predominante": "calma",
+      "intensidade_emocional": "baixa",
+      "comentario_athena": "É importante respeitar seus limites e descansar quando necessário."
+    }
+  ]
+}
+```
+
+### **Campos da Entrada do Diário**
+- **titulo**: Campo obrigatório para dar um título à entrada (string, não pode estar vazio)
+- **texto**: Campo obrigatório com o conteúdo da entrada (string, não pode estar vazio)
+
+### **Valores de Intensidade Emocional**
+A intensidade emocional é sempre retornada como texto com um dos seguintes valores:
+- **"baixa"**: Emoções suaves ou sutis
+- **"moderada"**: Emoções de intensidade média
+- **"alta"**: Emoções intensas ou fortes
+
 ## 🏗️ Estrutura do Projeto
 
 ```
-MindTrack-API/
+MindTracking-API/
 ├── config/                    # Configurações do sistema
 │   ├── database.js           # Configuração PostgreSQL
 │   ├── emailConfig.js        # Configuração Nodemailer
@@ -292,4 +401,4 @@ Este projeto está sob a licença **MIT**. Veja o arquivo `LICENSE` para mais de
 
 ---
 
-**Desenvolvido com ❤️ pela equipe MindTrack**
+**Desenvolvido com ❤️ pela equipe MindTracking**
