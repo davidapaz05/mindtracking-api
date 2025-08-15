@@ -104,3 +104,47 @@ export async function buscarDiarios(req, res) {
     }
 }
 
+// Buscar uma entrada específica do diário por ID
+export async function buscarDiarioPorId(req, res) {
+    const usuario_id = req.user.id;
+    const diario_id = req.params.id;
+
+    if (!diario_id) {
+        return res.status(400).json({
+            success: false,
+            message: 'ID do diário não fornecido'
+        });
+    }
+
+    try {
+        // Buscar a entrada específica, garantindo que pertence ao usuário logado
+        const resultado = await banco.query(
+            `SELECT id, data_hora, titulo, texto, emocao_predominante, intensidade_emocional, comentario_athena
+             FROM diario 
+             WHERE id = $1 AND usuario_id = $2`,
+            [diario_id, usuario_id]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Entrada do diário não encontrada ou não pertence ao usuário'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Entrada do diário recuperada com sucesso',
+            entrada: resultado.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Erro ao buscar entrada do diário por ID:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Erro interno do servidor ao buscar entrada do diário',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+}
+
