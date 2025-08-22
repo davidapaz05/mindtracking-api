@@ -1,6 +1,62 @@
 // Importa a configuração do banco de dados
 import banco from '../config/database.js';
 
+// Função para obter as correlações de tendências das respostas de um usuário
+export async function getCorrelacoesTendencias(req, res) {
+    const { usuario_id } = req.params;
+  
+    if (!usuario_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID do usuário não fornecido. Por favor, forneça um ID válido.'
+      });
+    }
+  
+    try {
+      // Verifica se o usuário existe
+      const usuarioExiste = await banco.query(
+        'SELECT id FROM usuarios WHERE id = $1',
+        [usuario_id]
+      );
+  
+      if (usuarioExiste.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuário não encontrado. Verifique se o ID está correto.'
+        });
+      }
+  
+      // Chama a procedure para analisar tendências nas respostas
+      const resultado = await banco.query(
+        'SELECT * FROM analisar_tendencias_respostas($1)',
+        [usuario_id]
+      );
+  
+      // Formata a saída
+      const correlacoes = resultado.rows.map(row => ({
+        total_ocorrencias: row.total_ocorrencias,
+        classificacao: row.classificacao,
+        texto_alternativa: row.texto_alternativa,
+        texto_pergunta: row.texto_pergunta
+      }));
+  
+      // Retorna os resultados da análise
+      return res.status(200).json({
+        success: true,
+        correlacoes,
+        message: 'Análise de tendências realizada com sucesso.'
+      });
+  
+    } catch (error) {
+      console.error("Erro ao analisar tendências:", error);
+      return res.status(500).json({
+        success: false,
+        message: 'Não foi possível analisar as tendências neste momento. Por favor, tente novamente mais tarde.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+  
 // Função para obter a pontuação total de um usuário com base em suas respostas //ok
 export async function getPontuacaoUsuario(req, res) {
     const { usuario_id } = req.params;
