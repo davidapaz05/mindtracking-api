@@ -20,7 +20,7 @@ const banco = new Pool({
     port: process.env.PORTA ,// Porta do banco de dados (definido no .env)
     ssl: {
         // Certificado SSL para conexões seguras
-        ca: readFileSync('./certs/global-bundle.pem').toString()
+        rejectUnauthorized: false,
     }
 });
 
