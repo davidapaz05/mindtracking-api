@@ -37,6 +37,9 @@ jobs:
           docker stop mindtracking-api || true
           docker rm mindtracking-api || true
 
+      - name: Login to Docker Hub (self-hosted)
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
       - name: Pull latest API image
         run: docker pull mindtrack/mindtracking-api:latest
 
