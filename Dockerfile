@@ -1,22 +1,30 @@
-# Usar imagem base
-FROM node:20-alpine
-
+# stage de build
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Instalar dependências necessárias para o bcrypt
+# deps p/ compilar módulos nativos (ex.: bcrypt)
 RUN apk add --no-cache python3 make g++
 
-# Copiar arquivos de dependências
 COPY package*.json ./
+# instala só prod deps de forma reprodutível
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
-# Instalar dependências no ambiente de produção
-RUN npm install --production
-
-# Copiar o restante do código fonte
+# copia o restante do código
 COPY . .
 
-# Expor a porta que a aplicação usa
-EXPOSE 3000
+# stage final (sem ferramentas de build)
+FROM node:20-alpine
+WORKDIR /app
 
-# Comando para iniciar a aplicação
+# ambiente de produção
+ENV NODE_ENV=production
+
+# copia node_modules e código do builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app ./
+
+# segurança: roda como usuário padrão "node"
+USER node
+
+EXPOSE 3000
 CMD ["node", "server.js"]

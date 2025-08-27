@@ -1,3 +1,12 @@
 node_modules
-npm-debug.log 
-
+npm-debug.log
+.env
+.git
+.gitignore
+Dockerfile
+README.md
+*.log
+coverage
+tmp
+.DS_Store
+.vscode
