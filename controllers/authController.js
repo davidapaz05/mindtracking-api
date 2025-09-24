@@ -129,14 +129,48 @@ export async function verifyEmail(req, res) {
         }
 
         if (user.codigo_verificacao !== codigo) {
+            const tentativas = (user.tentativas_recuperacao || 0) + 1;
+
+            if (tentativas >= 3) {
+                // gera novo código e zera tentativas
+                const novoCodigo = gerarCodigoVerificacao();
+                await banco.query(
+                    'UPDATE usuarios SET codigo_verificacao = $1, tentativas_recuperacao = 0 WHERE email = $2',
+                    [novoCodigo, email]
+                );
+
+                try {
+                    await transporter.sendMail({
+                        from: `"MindTracking" <${process.env.EMAIL_USER}>`,
+                        to: email,
+                        subject: 'Novo Código de Verificação - MindTracking',
+                        html: emailTemplates.verificationCode(novoCodigo),
+                        text: `Seu novo código de verificação é: ${novoCodigo}. Você tem 3 novas tentativas para utilizá-lo.`
+                    });
+                } catch (emailError) {
+                    console.error('Erro ao enviar novo código:', emailError);
+                }
+
+                return res.status(400).json({
+                    success: false,
+                    message: 'Número máximo de tentativas excedido. Um novo código foi enviado para o seu e-mail.'
+                });
+            }
+
+            await banco.query(
+                'UPDATE usuarios SET tentativas_recuperacao = $1 WHERE email = $2',
+                [tentativas, email]
+            );
+
             return res.status(400).json({ 
                 success: false, 
-                message: 'Código de verificação inválido. Por favor, verifique o código recebido no seu e-mail.' 
+                message: `Código inválido. Você ainda tem ${3 - tentativas} tentativa(s) restante(s).` 
             });
         }
 
+        // código válido -> confirma verificação
         await banco.query(
-            'UPDATE usuarios SET email_verificado = true, codigo_verificacao = null WHERE email = $1',
+            'UPDATE usuarios SET email_verificado = true, codigo_verificacao = null, tentativas_recuperacao = 0 WHERE email = $1',
             [email]
         );
 
@@ -185,13 +219,26 @@ export async function login(req, res) {
         }
 
         const user = rows[0];
-                
+
+        // Verificar senha primeiro
+        const senhaCorreta = await bcrypt.compare(senha, user.senha); 
+        if (!senhaCorreta) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Senha incorreta. Por favor, verifique sua senha e tente novamente.' 
+            });
+        }
+
+        // Se senha correta mas e-mail não verificado -> enviar código
         if (!user.email_verificado) {
             const novoCodigo = gerarCodigoVerificacao();
-            
+
             try {
-                await banco.query('UPDATE usuarios SET codigo_verificacao = $1 WHERE email = $2 AND senha = $3', [novoCodigo, email, senha]);
-                
+                await banco.query(
+                    'UPDATE usuarios SET codigo_verificacao = $1 WHERE email = $2',
+                    [novoCodigo, email]
+                );
+
                 await transporter.sendMail({
                     from: `"MindTracking" <${process.env.EMAIL_USER}>`,
                     to: email,
@@ -199,7 +246,7 @@ export async function login(req, res) {
                     html: emailTemplates.verificationCode(novoCodigo),
                     text: `Seu novo código de verificação é: ${novoCodigo} use-o para verificar seu e-mail. Se você não solicitou este código, ignore este e-mail. Atenciosamente, Equipe MindTracking.`
                 });
-            
+
                 return res.status(200).json({
                     success: false,
                     needsVerification: true,
@@ -214,15 +261,8 @@ export async function login(req, res) {
                 });
             }
         }
-        
-        const senhaCorreta = await bcrypt.compare(senha, user.senha); 
-        if (!senhaCorreta) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Senha incorreta. Por favor, verifique sua senha e tente novamente.' 
-            });
-        }
 
+        // Se e-mail já verificado -> login normal
         const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
 
         return res.status(200).json({
@@ -320,29 +360,54 @@ export async function verificarCodigoRecuperacao(req, res) {
         }
 
         const user = rows[0];
+
         if (user.codigo_recuperacao !== codigo) {
             const tentativas = (user.tentativas_recuperacao || 0) + 1;
-            await banco.query('UPDATE usuarios SET tentativas_recuperacao = $1 WHERE email = $2', [tentativas, email]);
-            
+
             if (tentativas >= 3) {
-                await banco.query('UPDATE usuarios SET codigo_recuperacao = null, tentativas_recuperacao = 0 WHERE email = $1', [email]);
+                // gera novo código e zera tentativas
+                const novoCodigo = gerarCodigoVerificacao();
+                await banco.query(
+                    'UPDATE usuarios SET codigo_recuperacao = $1, tentativas_recuperacao = 0 WHERE email = $2',
+                    [novoCodigo, email]
+                );
+
+                try {
+                    await transporter.sendMail({
+                        from: `"MindTracking" <${process.env.EMAIL_USER}>`,
+                        to: email,
+                        subject: 'Novo Código de Recuperação de Senha - MindTracking',
+                        html: emailTemplates.passwordRecovery(novoCodigo),
+                        text: `Seu novo código de recuperação é: ${novoCodigo}. Você tem 3 novas tentativas para utilizá-lo.`
+                    });
+                } catch (emailError) {
+                    console.error('Erro ao enviar novo código:', emailError);
+                }
+
                 return res.status(400).json({ 
                     success: false, 
-                    message: 'Número máximo de tentativas excedido. Por favor, solicite um novo código de recuperação.' 
+                    message: 'Número máximo de tentativas excedido. Um novo código foi enviado para o seu e-mail.' 
                 });
             }
-            
+
+            await banco.query(
+                'UPDATE usuarios SET tentativas_recuperacao = $1 WHERE email = $2',
+                [tentativas, email]
+            );
+
             return res.status(400).json({ 
                 success: false, 
                 message: `Código inválido. Você ainda tem ${3 - tentativas} tentativa(s) restante(s).` 
             });
         }
 
+        // código válido -> resetar tentativas
         await banco.query('UPDATE usuarios SET tentativas_recuperacao = 0 WHERE email = $1', [email]);
         return res.status(200).json({ 
             success: true, 
             message: 'Código válido. Você pode prosseguir com a redefinição de senha.' 
         });
+
     } catch (error) {
         console.error('Erro ao verificar código:', error);
         return res.status(500).json({ 
