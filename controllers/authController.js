@@ -190,7 +190,7 @@ export async function login(req, res) {
             const novoCodigo = gerarCodigoVerificacao();
             
             try {
-                await banco.query('UPDATE usuarios SET codigo_verificacao = $1 WHERE email = $2', [novoCodigo, email]);
+                await banco.query('UPDATE usuarios SET codigo_verificacao = $1 WHERE email = $2 AND senha = $3', [novoCodigo, email, senha]);
                 
                 await transporter.sendMail({
                     from: `"MindTracking" <${process.env.EMAIL_USER}>`,
