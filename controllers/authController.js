@@ -19,19 +19,35 @@ function gerarCodigoVerificacao() {
 
 // Função para registrar um novo usuário
 export async function register(req, res) {
-    const { nome, email, senha, confirmarSenha, data_nascimento } = req.body;
+    const { nome, email, senha, confirmarSenha, data_nascimento, telefone, genero } = req.body;
 
-    if (!nome || !email || !senha || !confirmarSenha || !data_nascimento) {
+    // Verificação de campos obrigatórios
+    if (!nome || !email || !senha || !confirmarSenha || !data_nascimento || !telefone || !genero) {
         return res.status(400).json({ 
             success: false, 
             message: 'Todos os campos são obrigatórios para o registro' 
         });
     }
 
+    // Validação de senha
     if (senha !== confirmarSenha) {
         return res.status(400).json({ 
             success: false, 
             message: 'As senhas não coincidem. Por favor, verifique e tente novamente.' 
+        });
+    }
+    // Validação de telefone
+    if (telefone.length > 15) {
+        return res.status(400).json({
+            success: false,
+            message: 'O telefone deve conter no máximo 15 caracteres.'
+        });
+    }
+    // Validação de gênero
+    if (genero.trim() === '') {
+        return res.status(400).json({
+            success: false,
+            message: 'O campo gênero não pode estar vazio.'
         });
     }
 
@@ -66,8 +82,8 @@ export async function register(req, res) {
         }
 
         const novoUsuario = await banco.query(
-            'INSERT INTO usuarios (nome, email, senha, data_nascimento, questionario_inicial, email_verificado, codigo_verificacao) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, nome, email, data_nascimento, questionario_inicial',
-            [nome, email, senhaCriptografada, data_nascimento, false, false, codigoVerificacao]
+            'INSERT INTO usuarios (nome, email, senha, data_nascimento, telefone, genero, questionario_inicial, email_verificado, codigo_verificacao) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, nome, email, data_nascimento, telefone, genero, questionario_inicial',
+            [nome, email, senhaCriptografada, data_nascimento, telefone, genero, false, false, codigoVerificacao]
         );
 
         const user = novoUsuario.rows[0];
@@ -80,13 +96,15 @@ export async function register(req, res) {
                 nome: user.nome,
                 email: user.email,
                 data_nascimento: user.data_nascimento,
+                telefone: user.telefone,
+                genero: user.genero,
                 questionario_inicial: user.questionario_inicial
             }
         });
 
     } catch (error) {
         console.error('Erro no registro:', error);
-        if (error.code === '23505') { // Código de erro de violação de chave única
+        if (error.code === '23505') { // Violação de chave única
             return res.status(400).json({
                 success: false,
                 message: 'Este e-mail já está cadastrado em nossa plataforma.'
