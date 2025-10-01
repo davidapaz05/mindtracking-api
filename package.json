@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.3",
     "openai": "^5.12.0",
+    "pdfkit": "^0.17.2",
     "pg": "^8.13.3"
   },
   "devDependencies": {
