@@ -2,6 +2,8 @@
 import pkg from 'pg';
 // Importa o pacote 'dotenv' para carregar variáveis de ambiente de um arquivo .env
 import dotenv from 'dotenv';
+import { readFileSync } from 'fs';
+
 
 // Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
