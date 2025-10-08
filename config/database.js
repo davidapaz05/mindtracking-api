@@ -17,10 +17,10 @@ const banco = new Pool({
     host: process.env.DB_HOST, // Host do banco de dados (definido no .env)
     database: process.env.DB_NAME, // Nome do banco de dados (definido no .env)
     password: process.env.DB_PASSWORD, // Senha do banco de dados (definido no .env)
-    port: process.env.PORTA, // Porta do banco de dados (definido no .env)
-    // ssl: {
-    //     rejectUnauthorized: false
-    // }
+    port: process.env.PORTA ,// Porta do banco de dados (definido no .env)
+    ssl: {
+        rejectUnauthorized: false
+    },
 });
 
 banco.connect()
