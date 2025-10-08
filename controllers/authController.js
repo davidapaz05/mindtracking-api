@@ -269,6 +269,7 @@ export async function login(req, res) {
                     success: false,
                     needsVerification: true,
                     email: email,
+                    email_verificado: false,
                     message: 'Por favor, verifique seu e-mail antes de fazer login. Um novo código de verificação foi enviado para seu e-mail.'
                 });
             } catch (emailError) {
@@ -290,7 +291,8 @@ export async function login(req, res) {
                 id: user.id,
                 nome: user.nome,
                 email: user.email,
-                questionario_inicial: user.questionario_inicial
+                questionario_inicial: user.questionario_inicial,
+                email_verificado: user.email_verificado
             },
             token,
         });
