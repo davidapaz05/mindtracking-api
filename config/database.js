@@ -20,8 +20,7 @@ const banco = new Pool({
     port: process.env.PORTA ,// Porta do banco de dados (definido no .env)
     ssl: {
         rejectUnauthorized: false
-    }
-    // Coloca o .env com o banco de dados na nuvem
+    },
 });
 
 banco.connect()

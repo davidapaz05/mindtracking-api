@@ -131,9 +131,14 @@ export async function getPontuacaoUsuario(req, res) {
 // Função para obter todas as perguntas e suas alternativas//ok
 export async function getPerguntas(req, res) {
     try {
-        // Verifica se é o questionário inicial (usando o parâmetro da query)
-        const isQuestionarioInicial = req.query.questionario_inicial === 'true';
-        
+        // Por padrão, considera-se questionário inicial (buscar perguntas 1..10).
+        // Se o cliente passar `?questionario_inicial=false` na query, retornamos todas as perguntas.
+        const isQuestionarioInicial = req.query.questionario_inicial !== 'false';
+
+        // Monta dinamicamente a cláusula WHERE para garantir que, por padrão,
+        // apenas as perguntas 1 a 10 sejam retornadas.
+        const whereClause = isQuestionarioInicial ? 'WHERE p.id BETWEEN 1 AND 10' : '';
+
         // Consulta as perguntas e suas alternativas no banco de dados
         const perguntas = await banco.query(`
             SELECT p.id, p.texto, 
@@ -144,10 +149,10 @@ export async function getPerguntas(req, res) {
                    )) as alternativas
             FROM perguntas p
             JOIN alternativas a ON p.id = a.pergunta_id
-            WHERE $1 = false OR p.id <= 10
+            ${whereClause}
             GROUP BY p.id
             ORDER BY p.id
-        `, [isQuestionarioInicial]);
+        `);
         
         if (perguntas.rows.length === 0) {
             return res.status(404).json({
