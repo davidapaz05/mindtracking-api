@@ -26,26 +26,28 @@ export async function getCorrelacoesTendencias(req, res) {
         });
       }
   
-      // Chama a procedure para analisar tendências nas respostas
-      const resultado = await banco.query(
-        'SELECT * FROM analisar_tendencias_respostas($1)',
-        [usuario_id]
-      );
-  
-      // Formata a saída
-      const correlacoes = resultado.rows.map(row => ({
-        total_ocorrencias: row.total_ocorrencias,
-        classificacao: row.classificacao,
-        texto_alternativa: row.texto_alternativa,
-        texto_pergunta: row.texto_pergunta
-      }));
-  
-      // Retorna os resultados da análise
-      return res.status(200).json({
-        success: true,
-        correlacoes,
-        message: 'Análise de tendências realizada com sucesso.'
-      });
+
+            // Chama a procedure para analisar tendências nas respostas
+            const resultado = await banco.query(
+                'SELECT * FROM analisar_tendencias_separadas($1)',
+                [usuario_id]
+            );
+
+            // Formata a saída incluindo pontuacao
+            const correlacoes = resultado.rows.map(row => ({
+                total_ocorrencias: row.total_ocorrencias,
+                classificacao: row.classificacao,
+                texto_alternativa: row.texto_alternativa,
+                texto_pergunta: row.texto_pergunta,
+                pontuacao: row.pontuacao // Adiciona pontuacao se presente na procedure
+            }));
+
+            // Retorna os resultados da análise
+            return res.status(200).json({
+                success: true,
+                correlacoes,
+                message: 'Análise de tendências realizada com sucesso.'
+            });
   
     } catch (error) {
       console.error("Erro ao analisar tendências:", error);
