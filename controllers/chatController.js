@@ -212,7 +212,7 @@ export async function gerarDicaDiagnostico(req, res) {
         const prompt = `
                         Você é Athena, uma assistente psicológica da MindTracking.
 
-                        Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 75 palavras.
+                        Com base no seguinte diagnóstico emocional, gere uma dica prática, acolhedora e personalizada que ajude o usuário a lidar melhor com sua situação. A dica deve ser detalhada e incluir passos práticos quando possível. A dica deve ter no maximo 20 palavras.
 
                         Diagnóstico:
                         ${textoDiagnostico}
@@ -249,6 +249,18 @@ export async function gerarDicaDiagnostico(req, res) {
             success: false,
             message: 'Ocorreu um erro ao gerar sua dica personalizada. Por favor, tente novamente mais tarde.' 
         });
+    }
+}
+
+// Retorna a contagem total de registros na tabela 'diagnosticos'
+export async function contarDiagnosticos(req, res) {
+    try {
+        const { rows } = await db.query(`SELECT COUNT(*)::int AS total FROM diagnosticos`);
+        const total = rows[0]?.total ?? 0;
+        return res.json({ success: true, total });
+    } catch (error) {
+        console.error('Erro ao contar diagnósticos:', error);
+        return res.status(500).json({ success: false, message: 'Erro ao contar diagnósticos' });
     }
 }
 // Função auxiliar para verificar se o texto é impossível de analisar
