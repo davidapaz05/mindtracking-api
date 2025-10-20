@@ -498,3 +498,105 @@ export async function deleteAccount(req, res) {
         return res.status(500).json({ success: false, message: 'Erro ao excluir conta. Tente novamente mais tarde.' });
     }
 }
+
+// Retorna o perfil do usuário (nome, email, idade, telefone, genero)
+export async function getProfile(req, res) {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+    }
+
+    try {
+        const { rows } = await banco.query('SELECT id, nome, email, data_nascimento, telefone, genero FROM usuarios WHERE id = $1', [userId]);
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
+        }
+
+        const user = rows[0];
+        let idade = null;
+        if (user.data_nascimento) {
+            const dataNascimento = new Date(user.data_nascimento);
+            const hoje = new Date();
+            idade = hoje.getFullYear() - dataNascimento.getFullYear();
+            const mesAtual = hoje.getMonth();
+            const mesNascimento = dataNascimento.getMonth();
+            if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < dataNascimento.getDate())) {
+                idade--;
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user.id,
+                nome: user.nome,
+                email: user.email,
+                data_nascimento: user.data_nascimento ?? null,
+                idade: idade,
+                telefone: user.telefone ?? null,
+                genero: user.genero ?? null
+            }
+        });
+    } catch (error) {
+        console.error('Erro ao obter perfil do usuário:', error);
+        return res.status(500).json({ success: false, message: 'Não foi possível obter o perfil neste momento.' });
+    }
+}
+
+// Atualiza campos do perfil: nome, data_nascimento, telefone, genero (atualiza apenas campos fornecidos)
+export async function updateProfile(req, res) {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+    }
+
+    const { nome, data_nascimento, telefone, genero } = req.body;
+
+    // Validações simples
+    if (telefone && telefone.length > 15) {
+        return res.status(400).json({ success: false, message: 'O telefone deve conter no máximo 15 caracteres.' });
+    }
+
+    if (genero && typeof genero === 'string' && genero.trim() === '') {
+        return res.status(400).json({ success: false, message: 'O campo gênero não pode estar vazio.' });
+    }
+
+    try {
+        // Monta dinamicamente a query de update para não sobrescrever campos não enviados
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (nome !== undefined) { fields.push(`nome = $${idx++}`); values.push(nome); }
+        if (data_nascimento !== undefined) { fields.push(`data_nascimento = $${idx++}`); values.push(data_nascimento); }
+        if (telefone !== undefined) { fields.push(`telefone = $${idx++}`); values.push(telefone); }
+        if (genero !== undefined) { fields.push(`genero = $${idx++}`); values.push(genero); }
+
+        if (fields.length === 0) {
+            return res.status(400).json({ success: false, message: 'Nenhum campo fornecido para atualização.' });
+        }
+
+        const query = `UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, nome, email, data_nascimento, telefone, genero`;
+        values.push(userId);
+
+        const { rows } = await banco.query(query, values);
+        const user = rows[0];
+
+        let idade = null;
+        if (user.data_nascimento) {
+            const dataNascimento = new Date(user.data_nascimento);
+            const hoje = new Date();
+            idade = hoje.getFullYear() - dataNascimento.getFullYear();
+            const mesAtual = hoje.getMonth();
+            const mesNascimento = dataNascimento.getMonth();
+            if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < dataNascimento.getDate())) {
+                idade--;
+            }
+        }
+
+        return res.status(200).json({ success: true, user: { id: user.id, nome: user.nome, email: user.email, idade, telefone: user.telefone ?? null, genero: user.genero ?? null } });
+    } catch (error) {
+        console.error('Erro ao atualizar perfil:', error);
+        return res.status(500).json({ success: false, message: 'Não foi possível atualizar o perfil neste momento.' });
+    }
+}
