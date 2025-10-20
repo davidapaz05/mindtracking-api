@@ -1,7 +1,7 @@
 // Importa o pacote express para criar rotas
 import express from 'express';
 // Importa as funções de registro e login do controlador de autenticação
-import { register, login, verifyEmail,enviarCodigoRecuperacao, verificarCodigoRecuperacao, redefinirSenha, deleteAccount, getProfile } from '../controllers/authController.js';
+import { register, login, verifyEmail,enviarCodigoRecuperacao, verificarCodigoRecuperacao, redefinirSenha, deleteAccount, getProfile, updateProfile } from '../controllers/authController.js';
 import authenticate from '../middlewares/authenticate.js';
 // Cria uma instância do roteador do Express
 const router = express.Router();
@@ -23,6 +23,7 @@ router.delete('/delete-account', authenticate, deleteAccount);
 
 // Perfil do usuário
 router.get('/profile', authenticate, getProfile);
+router.put('/profile', authenticate, updateProfile);
 
 // Exporta o roteador para ser usado em outros arquivos
 export default router;

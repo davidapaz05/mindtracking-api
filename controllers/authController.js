@@ -552,13 +552,37 @@ export async function updateProfile(req, res) {
 
     const { nome, data_nascimento, telefone, genero } = req.body;
 
-    // Validações simples
-    if (telefone && telefone.length > 15) {
-        return res.status(400).json({ success: false, message: 'O telefone deve conter no máximo 15 caracteres.' });
+    // Validações (mesmas regras do cadastro quando o campo é enviado)
+    if (nome !== undefined) {
+        if (typeof nome !== 'string' || nome.trim() === '') {
+            return res.status(400).json({ success: false, message: 'O campo nome não pode estar vazio.' });
+        }
     }
 
-    if (genero && typeof genero === 'string' && genero.trim() === '') {
-        return res.status(400).json({ success: false, message: 'O campo gênero não pode estar vazio.' });
+    if (data_nascimento !== undefined) {
+        const dt = new Date(data_nascimento);
+        if (Number.isNaN(dt.getTime())) {
+            return res.status(400).json({ success: false, message: 'Data de nascimento inválida. Use formato YYYY-MM-DD.' });
+        }
+        const hoje = new Date();
+        if (dt > hoje) {
+            return res.status(400).json({ success: false, message: 'Data de nascimento não pode ser no futuro.' });
+        }
+    }
+
+    if (telefone !== undefined) {
+        if (typeof telefone !== 'string' || telefone.trim() === '') {
+            return res.status(400).json({ success: false, message: 'O campo telefone não pode estar vazio.' });
+        }
+        if (telefone.length > 15) {
+            return res.status(400).json({ success: false, message: 'O telefone deve conter no máximo 15 caracteres.' });
+        }
+    }
+
+    if (genero !== undefined) {
+        if (typeof genero !== 'string' || genero.trim() === '') {
+            return res.status(400).json({ success: false, message: 'O campo gênero não pode estar vazio.' });
+        }
     }
 
     try {
