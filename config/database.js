@@ -18,9 +18,9 @@ const banco = new Pool({
     database: process.env.DB_NAME, // Nome do banco de dados (definido no .env)
     password: process.env.DB_PASSWORD, // Senha do banco de dados (definido no .env)
     port: process.env.PORTA ,// Porta do banco de dados (definido no .env)
-    // ssl: {
-    //     rejectUnauthorized: false
-    // },
+       ssl: {
+           rejectUnauthorized: false
+       },
 });
 
 banco.connect()
