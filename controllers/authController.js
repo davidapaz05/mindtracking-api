@@ -439,43 +439,57 @@ export async function verificarCodigoRecuperacao(req, res) {
 }
 
 export async function redefinirSenha(req, res) {
-    const { email, senha, confirmarSenha } = req.body;
+  const { email, senha, confirmarSenha } = req.body;
 
-    if (!email || !senha || !confirmarSenha) {
-        return res.status(400).json({
-            success: false,
-            message: 'Todos os campos são obrigatórios para redefinir a senha'
-        });
+  if (!email || !senha || !confirmarSenha) {
+    return res.status(400).json({
+      success: false,
+      message: 'Todos os campos são obrigatórios para redefinir a senha'
+    });
+  }
+
+  if (senha !== confirmarSenha) {
+    return res.status(400).json({
+      success: false,
+      message: 'As senhas não coincidem. Por favor, verifique e tente novamente.'
+    });
+  }
+
+  try {
+    // Verifica se o e-mail existe no banco
+    const usuario = await banco.query(
+      'SELECT id FROM usuarios WHERE email = $1',
+      [email]
+    );
+
+    if (usuario.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nenhum usuário encontrado com este e-mail.'
+      });
     }
 
-    if (senha !== confirmarSenha) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'As senhas não coincidem. Por favor, verifique e tente novamente.' 
-        });
-    }
+    // Criptografa e atualiza a senha
+    const salt = await bcrypt.genSalt(10);
+    const senhaCriptografada = await bcrypt.hash(senha, salt);
 
-    try {
-        const salt = await bcrypt.genSalt(10);
-        const senhaCriptografada = await bcrypt.hash(senha, salt);
-        
-        await banco.query(
-            'UPDATE usuarios SET senha = $1, codigo_recuperacao = null, tentativas_recuperacao = 0 WHERE email = $2',
-            [senhaCriptografada, email]
-        );
+    await banco.query(
+      'UPDATE usuarios SET senha = $1, codigo_recuperacao = null, tentativas_recuperacao = 0 WHERE email = $2',
+      [senhaCriptografada, email]
+    );
 
-        return res.status(200).json({ 
-            success: true, 
-            message: 'Senha redefinida com sucesso! Você já pode fazer login com sua nova senha.' 
-        });
-    } catch (error) {
-        console.error('Erro ao redefinir senha:', error);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Ocorreu um erro ao redefinir sua senha. Por favor, tente novamente mais tarde.',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
+    return res.status(200).json({
+      success: true,
+      message: 'Senha redefinida com sucesso! Você já pode fazer login com sua nova senha.'
+    });
+  } catch (error) {
+    console.error('Erro ao redefinir senha:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Ocorreu um erro ao redefinir sua senha. Por favor, tente novamente mais tarde.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 }
 
 export async function deleteAccount(req, res) {
