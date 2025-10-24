@@ -12,8 +12,6 @@ export async function verificarQuestionarioDiario(req, res) {
     }
 
     try {
-        console.log(`Verificando questionário diário para usuário: ${usuario_id}`);
-        
         // Verifica se o usuário existe
         const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
         if (usuarioExiste.rows.length === 0) {
@@ -23,40 +21,16 @@ export async function verificarQuestionarioDiario(req, res) {
             });
         }
 
-        // Obtém a data atual em diferentes formatos para debug
-        const dataAtual = new Date();
-        const dataISO = dataAtual.toISOString().split('T')[0]; // YYYY-MM-DD
-        const dataPostgres = dataAtual.toISOString().split('T')[0]; // Mesmo formato
-        
-        console.log(`Data atual: ${dataAtual}`);
-        console.log(`Data ISO: ${dataISO}`);
-        console.log(`Data PostgreSQL: ${dataPostgres}`);
-
-        // Verifica questionários de hoje (considerando timezone)
         const resultado = await banco.query(`
-            SELECT id, data, tipo_questionario, created_at 
-            FROM questionarios 
-            WHERE usuario_id = $1 
-            AND DATE(data) = CURRENT_DATE
-            ORDER BY created_at DESC
+            SELECT id FROM questionarios 
+            WHERE usuario_id = $1 AND data = CURRENT_DATE
         `, [usuario_id]);
         
-        console.log(`Questionários encontrados hoje: ${resultado.rows.length}`);
-        console.log('Detalhes dos questionários:', resultado.rows);
-        
         const ja_respondido = resultado.rows.length > 0;
-        const ultimoQuestionario = resultado.rows[0] || null;
 
         return res.status(200).json({
             success: true,
             ja_respondido: ja_respondido,
-            total_questionarios_hoje: resultado.rows.length,
-            ultimo_questionario: ultimoQuestionario ? {
-                id: ultimoQuestionario.id,
-                data: ultimoQuestionario.data,
-                tipo: ultimoQuestionario.tipo_questionario,
-                created_at: ultimoQuestionario.created_at
-            } : null,
             message: ja_respondido 
                 ? 'Você já respondeu o questionário hoje. Volte amanhã para responder novamente.' 
                 : 'Você ainda não respondeu o questionário hoje.'
@@ -220,3 +194,4 @@ export async function salvarRespostasDiarias(req, res) {
     }
 
 } 
+
