@@ -2,47 +2,47 @@ import banco from '../config/database.js';
 
 // Verifica se o usuário já respondeu o questionário hoje//ok
 export async function verificarQuestionarioDiario(req, res) {
-    const { usuario_id } = req.params;
+  const { usuario_id } = req.params;
 
-    if (!usuario_id) {
-        return res.status(400).json({
-            success: false,
-            message: 'ID do usuário não fornecido. Por favor, forneça um ID válido.'
-        });
+  if (!usuario_id) {
+    return res.status(400).json({
+      success: false,
+      message: 'ID do usuário não fornecido. Por favor, forneça um ID válido.'
+    });
+  }
+
+  try {
+    const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
+    if (usuarioExiste.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado. Verifique se o ID está correto.'
+      });
     }
 
-    try {
-        // Verifica se o usuário existe
-        const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
-        if (usuarioExiste.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Usuário não encontrado. Verifique se o ID está correto.'
-            });
-        }
+    // Ajuste para considerar data no fuso UTC
+    const resultado = await banco.query(`
+      SELECT id FROM questionarios 
+      WHERE usuario_id = $1 AND data = (CURRENT_DATE AT TIME ZONE 'UTC')
+    `, [usuario_id]);
 
-        const resultado = await banco.query(`
-            SELECT id FROM questionarios 
-            WHERE usuario_id = $1 AND data = CURRENT_DATE
-        `, [usuario_id]);
-        
-        const ja_respondido = resultado.rows.length > 0;
+    const ja_respondido = resultado.rows.length > 0;
 
-        return res.status(200).json({
-            success: true,
-            ja_respondido: ja_respondido,
-            message: ja_respondido 
-                ? 'Você já respondeu o questionário hoje. Volte amanhã para responder novamente.' 
-                : 'Você ainda não respondeu o questionário hoje.'
-        });
-    } catch (error) {
-        console.error('Erro ao verificar questionário diário:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Não foi possível verificar o status do seu questionário diário. Por favor, tente novamente mais tarde.',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
+    return res.status(200).json({
+      success: true,
+      ja_respondido: ja_respondido,
+      message: ja_respondido 
+          ? 'Você já respondeu o questionário hoje. Volte amanhã para responder novamente.' 
+          : 'Você ainda não respondeu o questionário hoje.'
+    });
+  } catch (error) {
+    console.error('Erro ao verificar questionário diário:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Não foi possível verificar o status do seu questionário diário. Por favor, tente novamente mais tarde.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 }
 
 // Obtém as perguntas do questionário diário (ID >= 11) de forma aleatória
@@ -119,57 +119,53 @@ export async function salvarRespostasDiarias(req, res) {
         });
     }
 
-    try {
-        // Verifica se o usuário existe
-        const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
-        if (usuarioExiste.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Usuário não encontrado. Verifique se o ID está correto.'
-            });
-        }
+  try {
+    const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
+    if (usuarioExiste.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado. Verifique se o ID está correto.'
+      });
+    }
 
-        // Verifica se o usuário já respondeu hoje
-        const verificar = await banco.query(`
-            SELECT id FROM questionarios
-            WHERE usuario_id = $1 AND data = CURRENT_DATE
-        `, [usuario_id]);
+    const verificar = await banco.query(`
+      SELECT id FROM questionarios
+      WHERE usuario_id = $1 AND data = (CURRENT_DATE AT TIME ZONE 'UTC')
+    `, [usuario_id]);
 
-        if (verificar.rows.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Você já respondeu o questionário hoje. Volte amanhã para responder novamente.'
-            });
-        }
+    if (verificar.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Você já respondeu o questionário hoje. Volte amanhã para responder novamente.'
+      });
+    }
 
-        // Cria um novo questionário diário
-        const questionario = await banco.query(
-            'INSERT INTO questionarios (usuario_id, data, tipo) VALUES ($1, CURRENT_DATE, $2) RETURNING id',
-            [usuario_id, 'Diario']
-        );
-        const questionario_id = questionario.rows[0].id;
+    // Inserção usando data com fuso UTC
+    const questionario = await banco.query(
+      'INSERT INTO questionarios (usuario_id, data, tipo) VALUES ($1, (CURRENT_DATE AT TIME ZONE \'UTC\'), $2) RETURNING id',
+      [usuario_id, 'Diario']
+    );
+    const questionario_id = questionario.rows[0].id;
 
         // Insere cada resposta
         for (const resposta of respostas) {
-            if (!resposta.pergunta_id || !resposta.alternativa_id) {
-                throw new Error('Dados de resposta incompletos');
-            }
+      if (!resposta.pergunta_id || !resposta.alternativa_id) {
+        throw new Error('Dados de resposta incompletos');
+      }
+      await banco.query(
+        `INSERT INTO respostas (usuario_id, pergunta_id, alternativa_id, questionario_id) 
+         VALUES ($1, $2, $3, $4)`,
+        [usuario_id, resposta.pergunta_id, resposta.alternativa_id, questionario_id]
+      );
+    }
 
-            await banco.query(
-                `INSERT INTO respostas 
-                (usuario_id, pergunta_id, alternativa_id, questionario_id) 
-                VALUES ($1, $2, $3, $4)`,
-                [usuario_id, resposta.pergunta_id, resposta.alternativa_id, questionario_id]
-            );
-        }
+    return res.status(200).json({
+      success: true,
+      message: 'Questionário diário respondido com sucesso! Obrigado por sua participação.'
+    });
 
-        return res.status(200).json({
-            success: true,
-            message: 'Questionário diário respondido com sucesso! Obrigado por sua participação.'
-        });
-
-    } catch (error) {
-        console.error('Erro ao salvar respostas diárias:', error);
+  } catch (error) {
+    console.error('Erro ao salvar respostas diárias:', error);
         
         // Verifica se é um erro de violação de chave estrangeira
         if (error.code === '23503') {
