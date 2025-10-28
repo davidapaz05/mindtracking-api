@@ -44,7 +44,6 @@ export async function verificarQuestionarioDiario(req, res) {
     });
   }
 }
-
 // Obtém as perguntas do questionário diário (ID >= 11) de forma aleatória
 export async function getPerguntasDiarias(req, res) {
     try {
@@ -189,4 +188,6 @@ export async function salvarRespostasDiarias(req, res) {
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
+
 } 
+
