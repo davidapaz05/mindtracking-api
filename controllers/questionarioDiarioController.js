@@ -2,7 +2,7 @@ import banco from '../config/database.js';
 
 // Verifica se o usuário já respondeu o questionário hoje//ok
 export async function verificarQuestionarioDiario(req, res) {
-  const { usuario_id } = req.params;
+ const { usuario_id } = req.params;
 
   if (!usuario_id) {
     return res.status(400).json({
@@ -12,7 +12,12 @@ export async function verificarQuestionarioDiario(req, res) {
   }
 
   try {
-    const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
+    // Verifica se o usuário existe
+    const usuarioExiste = await banco.query(
+      'SELECT id FROM usuarios WHERE id = $1',
+      [usuario_id]
+    );
+
     if (usuarioExiste.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -20,26 +25,30 @@ export async function verificarQuestionarioDiario(req, res) {
       });
     }
 
-    // Ajuste para considerar data no fuso UTC
-    const resultado = await banco.query(`
-      SELECT id FROM questionarios 
-      WHERE usuario_id = $1 AND data = (CURRENT_DATE AT TIME ZONE 'UTC')
-    `, [usuario_id]);
+    // Verifica se o usuário respondeu qualquer questionário hoje (considerando fuso UTC)
+    const resultado = await banco.query(
+      `
+      SELECT id FROM questionarios
+      WHERE usuario_id = $1 
+        AND data = (CURRENT_DATE AT TIME ZONE 'UTC')
+      `,
+      [usuario_id]
+    );
 
     const ja_respondido = resultado.rows.length > 0;
 
     return res.status(200).json({
       success: true,
-      ja_respondido: ja_respondido,
-      message: ja_respondido 
-          ? 'Você já respondeu o questionário hoje. Volte amanhã para responder novamente.' 
-          : 'Você ainda não respondeu o questionário hoje.'
+      ja_respondido,
+      message: ja_respondido
+        ? 'Você já respondeu um questionário hoje. Volte amanhã para responder novamente.'
+        : 'Você ainda não respondeu nenhum questionário hoje.'
     });
   } catch (error) {
-    console.error('Erro ao verificar questionário diário:', error);
+    console.error('Erro ao verificar questionário:', error);
     return res.status(500).json({
       success: false,
-      message: 'Não foi possível verificar o status do seu questionário diário. Por favor, tente novamente mais tarde.',
+      message: 'Não foi possível verificar o status dos questionários hoje. Por favor, tente novamente mais tarde.',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

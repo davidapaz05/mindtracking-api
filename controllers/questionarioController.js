@@ -270,7 +270,7 @@ export async function getHistoricoQuestionarios(req, res) {
             message: 'ID do usuário não fornecido. Por favor, forneça um ID válido.' 
         });
     }
-
+    
     try {
         // Verifica se o usuário existe
         const usuarioExiste = await banco.query('SELECT id FROM usuarios WHERE id = $1', [usuario_id]);
@@ -323,7 +323,6 @@ export async function getHistoricoQuestionarios(req, res) {
     }
 }
 
-// Função para obter estatísticas do usuário (número de questionários e idade)
 export async function getEstatisticasUsuario(req, res) {
     const { usuario_id } = req.params;
 
