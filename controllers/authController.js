@@ -564,9 +564,9 @@ export async function updateProfile(req, res) {
         return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
     }
 
-    const { nome, data_nascimento, telefone, genero } = req.body;
+    const { nome, data_nascimento, telefone, genero, foto_perfil_url, foto_fundo_url } = req.body;
 
-    // Validações (mesmas regras do cadastro quando o campo é enviado)
+    // Validações dos campos já existentes
     if (nome !== undefined) {
         if (typeof nome !== 'string' || nome.trim() === '') {
             return res.status(400).json({ success: false, message: 'O campo nome não pode estar vazio.' });
@@ -599,6 +599,14 @@ export async function updateProfile(req, res) {
         }
     }
 
+    // Opcional: validações simples para as URLs das fotos (só se enviadas)
+    if (foto_perfil_url !== undefined && typeof foto_perfil_url !== 'string') {
+        return res.status(400).json({ success: false, message: 'URL de foto de perfil inválida.' });
+    }
+    if (foto_fundo_url !== undefined && typeof foto_fundo_url !== 'string') {
+        return res.status(400).json({ success: false, message: 'URL de foto de fundo inválida.' });
+    }
+
     try {
         // Monta dinamicamente a query de update para não sobrescrever campos não enviados
         const fields = [];
@@ -609,12 +617,14 @@ export async function updateProfile(req, res) {
         if (data_nascimento !== undefined) { fields.push(`data_nascimento = $${idx++}`); values.push(data_nascimento); }
         if (telefone !== undefined) { fields.push(`telefone = $${idx++}`); values.push(telefone); }
         if (genero !== undefined) { fields.push(`genero = $${idx++}`); values.push(genero); }
+        if (foto_perfil_url !== undefined) { fields.push(`foto_perfil_url = $${idx++}`); values.push(foto_perfil_url); }
+        if (foto_fundo_url !== undefined) { fields.push(`foto_fundo_url = $${idx++}`); values.push(foto_fundo_url); }
 
         if (fields.length === 0) {
             return res.status(400).json({ success: false, message: 'Nenhum campo fornecido para atualização.' });
         }
 
-        const query = `UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, nome, email, data_nascimento, telefone, genero`;
+        const query = `UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, nome, email, data_nascimento, telefone, genero, foto_perfil_url, foto_fundo_url`;
         values.push(userId);
 
         const { rows } = await banco.query(query, values);
@@ -632,9 +642,22 @@ export async function updateProfile(req, res) {
             }
         }
 
-        return res.status(200).json({ success: true, user: { id: user.id, nome: user.nome, email: user.email, idade, telefone: user.telefone ?? null, genero: user.genero ?? null } });
+        return res.status(200).json({ 
+            success: true, 
+            user: { 
+                id: user.id, 
+                nome: user.nome, 
+                email: user.email, 
+                idade, 
+                telefone: user.telefone ?? null, 
+                genero: user.genero ?? null,
+                foto_perfil_url: user.foto_perfil_url ?? null,
+                foto_fundo_url: user.foto_fundo_url ?? null
+            } 
+        });
     } catch (error) {
         console.error('Erro ao atualizar perfil:', error);
         return res.status(500).json({ success: false, message: 'Não foi possível atualizar o perfil neste momento.' });
     }
 }
+
