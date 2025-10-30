@@ -521,7 +521,11 @@ export async function getProfile(req, res) {
     }
 
     try {
-        const { rows } = await banco.query('SELECT id, nome, email, data_nascimento, telefone, genero FROM usuarios WHERE id = $1', [userId]);
+        const { rows } = await banco.query(
+            'SELECT id, nome, email, data_nascimento, telefone, genero, foto_perfil_url, foto_fundo_url FROM usuarios WHERE id = $1',
+            [userId]
+        );
+
         if (rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
         }
@@ -548,7 +552,9 @@ export async function getProfile(req, res) {
                 data_nascimento: user.data_nascimento ?? null,
                 idade: idade,
                 telefone: user.telefone ?? null,
-                genero: user.genero ?? null
+                genero: user.genero ?? null,
+                foto_perfil_url: user.foto_perfil_url ?? null,
+                foto_fundo_url: user.foto_fundo_url ?? null
             }
         });
     } catch (error) {

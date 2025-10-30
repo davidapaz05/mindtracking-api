@@ -21,7 +21,6 @@ const banco = new Pool({
           ssl: {
               rejectUnauthorized: false
           },
-
 });
 
 banco.connect()
