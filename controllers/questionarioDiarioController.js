@@ -27,13 +27,14 @@ export async function verificarQuestionarioDiario(req, res) {
 
     // Verifica se o usuário respondeu qualquer questionário hoje (considerando fuso UTC)
     const resultado = await banco.query(
-      `
-      SELECT id FROM questionarios
-      WHERE usuario_id = $1 
-        AND data = (CURRENT_DATE AT TIME ZONE 'UTC')
-      `,
-      [usuario_id]
-    );
+  `
+  SELECT id FROM questionarios
+  WHERE usuario_id = $1
+    AND data >= (CURRENT_DATE AT TIME ZONE 'UTC')
+    AND data < ((CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE 'UTC')
+  `,
+  [usuario_id]
+);
 
     const ja_respondido = resultado.rows.length > 0;
 
@@ -199,4 +200,5 @@ export async function salvarRespostasDiarias(req, res) {
     }
 
 } 
+
 
