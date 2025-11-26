@@ -252,10 +252,16 @@ export async function gerarDicaDiagnostico(req, res) {
     }
 }
 
-// Retorna a contagem total de registros na tabela 'diagnosticos'
+// Retorna a contagem de diagnósticos do usuário logado
 export async function contarDiagnosticos(req, res) {
+    const usuarioId = req.user?.id;
+
+    if (!usuarioId) {
+        return res.status(401).json({ success: false, message: 'Você precisa estar autenticado para contar diagnósticos.' });
+    }
+
     try {
-        const { rows } = await db.query(`SELECT COUNT(*)::int AS total FROM diagnosticos`);
+        const { rows } = await db.query(`SELECT COUNT(*)::int AS total FROM diagnosticos WHERE usuario_id = $1`, [usuarioId]);
         const total = rows[0]?.total ?? 0;
         return res.json({ success: true, total });
     } catch (error) {
