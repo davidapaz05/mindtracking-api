@@ -58,4 +58,7 @@ jobs:
             -e EMAIL_USER='${{ secrets.EMAIL_USER }}' \
             -e EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
             -e JWT_KEY='${{ secrets.JWT_KEY }}' \
+            -e CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}' \
+            -e CLOUDINARY_API_KEY='${{ secrets.CLOUDINARY_API_KEY }}' \
+            -e CLOUDINARY_API_SECRET='${{ secrets.CLOUDINARY_API_SECRET }}' \
             "${IMAGE}"
